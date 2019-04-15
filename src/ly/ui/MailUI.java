@@ -61,10 +61,11 @@ public class MailUI {
             // For the SMTP Server drop down
             else if (isSMTPServerIndex) {
                 String[] SmtpServerList = {"smtp.gmail.com (SSL)", "smtp.gmail.com (TLS)"};
-                JComboBox serverComboBox = new JComboBox(SmtpServerList);
-                label.setLabelFor(serverComboBox);
-                contentPane.add(serverComboBox);
-                componentHashMap.put(fieldName, serverComboBox);
+                JComboBox serverPortDropdown = new JComboBox(SmtpServerList);
+                serverPortDropdown.addActionListener(new ServerPortActionListener());
+                label.setLabelFor(serverPortDropdown);
+                contentPane.add(serverPortDropdown);
+                componentHashMap.put(fieldName, serverPortDropdown);
             }
 
             // For other text fields
@@ -85,7 +86,7 @@ public class MailUI {
         contentPane.add(sendButton);
 
         // Add action listener
-        sendButton.addActionListener(new CustomActionListener());
+        sendButton.addActionListener(new ButtonActionListener());
 
         // Set up the constraints
         SpringUtilities.makeCompactGrid(
@@ -112,9 +113,6 @@ public class MailUI {
         JTextField subjectField = (JTextField) componentHashMap.get(labels[2]);
         String subjectText = subjectField.getText();
 
-        JTextField SMTPField = (JTextField) componentHashMap.get(labels[3]);
-        String SMTPText = SMTPField.getText();
-
         JTextField userNameField = (JTextField) componentHashMap.get(labels[4]);
         String userNameText = userNameField.getText();
 
@@ -125,10 +123,11 @@ public class MailUI {
         String messageText = messageField.getText();
 
         mailEntity.setData(fromText, toText, subjectText, messageText);
-        serverEntity.setData(Integer.parseInt(SMTPText), "smtp.gmail.com", userNameText, passwordText);
+        serverEntity.setUsername(userNameText);
+        serverEntity.setPassword(passwordText);
     }
 
-    static class CustomActionListener implements ActionListener {
+    static class ButtonActionListener implements ActionListener {
 
         public void actionPerformed(ActionEvent event) {
 
@@ -151,6 +150,20 @@ public class MailUI {
 
     }
 
-    // TODO: Switching between the severs, should change the port
+    static class ServerPortActionListener implements ActionListener {
+        public void actionPerformed(ActionEvent event) {
+            // Change the port
+            JComboBox serverComboBox = (JComboBox) event.getSource();
+            String selectedServer = (String) serverComboBox.getSelectedItem();
+
+            if (selectedServer.equals("smtp.gmail.com (SSL)")) {
+                serverEntity.setPort(465);
+            } else {
+                serverEntity.setPort(587);
+            }
+
+            System.out.println("Server port changed to: " + serverEntity.getPort());
+        }
+    }
 
 }
