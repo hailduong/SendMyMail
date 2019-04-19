@@ -6,7 +6,9 @@ public class MailMessage {
     private String _message;
     private String _subject;
     private String _to;
+    private String _attachment;
     private static final MailMessage _instance = new MailMessage();
+
     public static MailMessage getInstance() {
         return _instance;
     }
@@ -48,6 +50,14 @@ public class MailMessage {
 
     public void setTo(String to) {
         this._to = to;
+    }
+
+    public void setAttachment(String attachment) {
+        this._attachment = attachment;
+    }
+
+    public String getAttachment() {
+        return this._attachment;
     }
 }
 

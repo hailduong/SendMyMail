@@ -5,6 +5,7 @@ import ly.entity.MailMessage;
 import ly.entity.SMTPServer;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileSystemView;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -16,10 +17,24 @@ public class MailUI {
      * This is used for referencing the values of these components
      */
     private static HashMap<String, JComponent> componentHashMap = new HashMap();
-    private static String[] labels = {"From: ", "To: ", "Subject: ", "SMTP Server: ", "Username: ", "Password: ", "Message: "};
+    private static String[] labels = {
+            "From: ", "To: ", "Subject: ", "SMTP Server: ", "Username: ", "Password: ",
+            "Message: ", "Attachment: ", "Selected file: "};
     private static String[] defaultValues = {
             "lydhfx00181@funix.edu.vn", "hailyduong@gmail.com", "Test Email",
             "587", "lydhfx00181@funix.edu.vn", "eekkoekkscgyakzp", "Hello, this is a test email"
+    };
+    private static String[][] componentData = {
+            {"name", "type", "label", "defaultValue"},
+            {"FROM", "Text", "From: ", "lydhfx00181@funix.edu.vn"},
+            {"TO", "Text", "From: ", "hailyduong@gmail.com"},
+            {"SUBJECT", "Text", "From: ", "Test Email"},
+            {"SMTP_SERVEER", "Text", "From: ", "587"},
+            {"USER", "Text", "From: ", "lydhfx00181@funix.edu.vn"},
+            {"PASSWORD", "Text", "From: ", "eekkoekkscgyakzp"},
+            {"MESSAGE", "Text", "From: ", "Hello, this is a test email"},
+            {"ATTACHMENT", "Text", "From: ", ""},
+            {"SELECTED_FILE", "Text", "From: ", "No file selected!"}
     };
     private static JFrame frame = new JFrame("Send My Email");
     private static MailMessage mailEntity = MailMessage.getInstance();
@@ -46,8 +61,10 @@ public class MailUI {
             JLabel label = new JLabel(fieldName, JLabel.TRAILING);
             contentPane.add(label);
 
-            Boolean isMessageIndex = i == (numberOfFields - 1);
+            Boolean isMessageIndex = i == (numberOfFields - 3);
             Boolean isSMTPServerIndex = i == 3;
+            Boolean isAttachmentIndex = i == (numberOfFields - 2);
+            Boolean isAttachmentFilePath = i == (numberOfFields - 1);
 
             // For message textarea
             if (isMessageIndex) {
@@ -60,12 +77,35 @@ public class MailUI {
 
             // For the SMTP Server drop down
             else if (isSMTPServerIndex) {
-                String[] SmtpServerList = {"smtp.gmail.com (SSL)", "smtp.gmail.com (TLS)"};
+                String[] SmtpServerList = {
+                        "smtp.gmail.com (SSL)",
+                        "smtp.gmail.com (TLS)",
+                        "smtp.mail.yahoo.com (SSL)",
+                        "smtp.live.com (SSL)"
+                };
                 JComboBox serverPortDropdown = new JComboBox(SmtpServerList);
                 serverPortDropdown.addActionListener(new ServerPortActionListener());
                 label.setLabelFor(serverPortDropdown);
                 contentPane.add(serverPortDropdown);
                 componentHashMap.put(fieldName, serverPortDropdown);
+            }
+
+            // For the attachment field, open button
+            else if (isAttachmentIndex) {
+                JButton openButton = new JButton("Choose a file...");
+                openButton.addActionListener(new OpenFileChooserLisenter());
+                label.setLabelFor(openButton);
+                contentPane.add(openButton);
+                componentHashMap.put(fieldName, openButton);
+
+            }
+
+            // File path text
+            else if (isAttachmentFilePath) {
+                JLabel filePathLabel = new JLabel("No file chosen!");
+                label.setLabelFor(filePathLabel);
+                contentPane.add(filePathLabel);
+                componentHashMap.put(fieldName, filePathLabel);
             }
 
             // For other text fields
@@ -91,7 +131,7 @@ public class MailUI {
         // Set up the constraints
         SpringUtilities.makeCompactGrid(
                 contentPane,
-                8, 2,
+                10, 2,
                 6, 6,
                 6, 6
         );
@@ -104,11 +144,11 @@ public class MailUI {
 
     public static void updateDataFromUiToModel() {
 
-        JTextField toField = (JTextField) componentHashMap.get(labels[0]);
-        String toText = toField.getText();
-
-        JTextField fromField = (JTextField) componentHashMap.get(labels[1]);
+        JTextField fromField = (JTextField) componentHashMap.get(labels[0]);
         String fromText = fromField.getText();
+
+        JTextField toField = (JTextField) componentHashMap.get(labels[1]);
+        String toText = toField.getText();
 
         JTextField subjectField = (JTextField) componentHashMap.get(labels[2]);
         String subjectText = subjectField.getText();
@@ -156,14 +196,56 @@ public class MailUI {
             JComboBox serverComboBox = (JComboBox) event.getSource();
             String selectedServer = (String) serverComboBox.getSelectedItem();
 
+            // Gmail SSL
             if (selectedServer.equals("smtp.gmail.com (SSL)")) {
+                serverEntity.setServer("smtp.gmail.com");
                 serverEntity.setPort(465);
-            } else {
+            }
+
+            // Yahoo SSL
+            else if (selectedServer.equals("smtp.mail.yahoo.com (SSL)")) {
+                serverEntity.setServer("smtp.mail.yahoo.com");
+                serverEntity.setPort(465);
+            }
+
+            // Outlook SSL
+            else if (selectedServer.equals("smtp.live.com (SSL)")) {
+                serverEntity.setServer("smtp.live.com");
+                serverEntity.setPort(465);
+            }
+
+            // Gmail TLS
+            else {
+                serverEntity.setServer("smtp.gmail.com");
                 serverEntity.setPort(587);
             }
 
             System.out.println("Server port changed to: " + serverEntity.getPort());
+            System.out.println("Server changed to: " + serverEntity.getServer());
         }
+    }
+
+    static class OpenFileChooserLisenter implements ActionListener {
+
+        public void actionPerformed(ActionEvent event) {
+
+            // Open file chooser
+            JFileChooser fileChooser = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
+            fileChooser.setDialogTitle("Select a file");
+
+            int returnValue = fileChooser.showOpenDialog(null);
+            if (returnValue == JFileChooser.APPROVE_OPTION) {
+                String filePath = fileChooser.getSelectedFile().getPath();
+                System.out.println(filePath);
+
+                JLabel selectedLabel = (JLabel) componentHashMap.get("Selected file: ");
+                selectedLabel.setText(filePath);
+                mailEntity.setAttachment(filePath);
+            }
+
+        }
+
+
     }
 
 }

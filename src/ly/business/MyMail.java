@@ -3,12 +3,21 @@ package ly.business;
 import ly.entity.MailMessage;
 import ly.entity.SMTPServer;
 
+import javax.activation.DataHandler;
+import javax.activation.DataSource;
+import javax.activation.FileDataSource;
 import javax.mail.*;
 import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
 import java.util.Properties;
 
 public class MyMail {
+
+    private static MailMessage mailMessageEntity = MailMessage.getInstance();
+    private static SMTPServer serverEntity = SMTPServer.getInstance();
+
     public static Session getSession() {
 
         // Set up the properties
@@ -19,17 +28,18 @@ public class MyMail {
         properties.put("mail.smtp.host", host);
         properties.put("mail.smtp.port", "587");
 
-        // Set up the authenticator
-        SMTPServer serverEntity = SMTPServer.getInstance();
-
-        // TODO: update the values here
+        // TODO: Set up the authenticator
+//        final String username = serverEntity.getUsername();
         final String username = "lydhfx00181@funix.edu.vn";
+//        final String password = serverEntity.getPassword();
         final String password = "eekkoekkscgyakzp";
+
         Authenticator authenticator = new Authenticator() {
             protected PasswordAuthentication getPasswordAuthentication() {
                 return new PasswordAuthentication(username, password);
             }
         };
+
         // Get the session object
         Session session = Session.getInstance(properties, authenticator);
 
@@ -38,7 +48,7 @@ public class MyMail {
 
     public static boolean sendEmail() {
         try {
-            MailMessage mailMessageEntity = MailMessage.getInstance();
+
             Session session = getSession();
 
             // Setup the email details
@@ -46,11 +56,34 @@ public class MyMail {
             message.setFrom(new InternetAddress(mailMessageEntity.getFrom()));
             message.setRecipient(Message.RecipientType.TO, InternetAddress.parse(mailMessageEntity.getTo())[0]);
             message.setSubject(mailMessageEntity.getSubject());
-            message.setText(mailMessageEntity.getMessage());
+
+            // Create the message part
+            BodyPart messageBodyPart = new MimeBodyPart();
+            messageBodyPart.setText(mailMessageEntity.getMessage());
+
+            // Create a multipart message
+            Multipart multipart = new MimeMultipart();
+
+            // Set text message part
+            multipart.addBodyPart(messageBodyPart);
+
+            // Part two is attachment
+            messageBodyPart = new MimeBodyPart();
+            String filename = mailMessageEntity.getAttachment();
+            DataSource source = new FileDataSource(filename);
+            messageBodyPart.setDataHandler(new DataHandler(source));
+            messageBodyPart.setFileName(filename);
+
+            // Add the attachment
+            multipart.addBodyPart(messageBodyPart);
+
+            // Send the complete message parts
+            message.setContent(multipart);
 
             // Send
             Transport.send(message);
             return true;
+
         } catch (Exception exception) {
             exception.printStackTrace();
             return false;
